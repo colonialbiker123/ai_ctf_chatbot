@@ -1,22 +1,20 @@
-from flask import Flask, request, jsonify
+import streamlit as st
 import random
-import numpy as np
-import nltk
-import pickle
 import json
+import pickle
+import numpy as np
 import tensorflow as tf
+import nltk
 from nltk.stem import WordNetLemmatizer
 
-app = Flask(__name__)
-
-# Load model and data
+# Load resources
+lemmatizer = WordNetLemmatizer()
 model = tf.keras.models.load_model('chatbot_model.h5')
 intents = json.load(open('intents.json'))
 words = pickle.load(open('words.pkl', 'rb'))
 classes = pickle.load(open('classes.pkl', 'rb'))
 
-lemmatizer = WordNetLemmatizer()
-
+# NLP preprocessing
 def clean_up_sentence(sentence):
     sentence_words = nltk.word_tokenize(sentence)
     sentence_words = [lemmatizer.lemmatize(word.lower()) for word in sentence_words]
@@ -31,6 +29,7 @@ def bag_of_words(sentence, words):
                 bag[i] = 1
     return np.array(bag)
 
+# Predict intent
 def predict_class(sentence):
     bow = bag_of_words(sentence, words)
     res = model.predict(np.array([bow]))[0]
@@ -40,25 +39,27 @@ def predict_class(sentence):
     return_list = [{'intent': classes[r[0]], 'probability': str(r[1])} for r in results]
     return return_list
 
-def get_response(intents_list):
+# Get response
+def get_response(intents_list, intents_json):
     if not intents_list:
         return "I'm not sure how to respond to that."
     tag = intents_list[0]['intent']
-    for i in intents['intents']:
+    for i in intents_json['intents']:
         if i['tag'] == tag:
             return random.choice(i['responses'])
-    return "I'm not sure how to respond to that."
+    return "Sorry, I didn't understand that."
 
-@app.route("/chat", methods=["POST"])
-def chat():
-    user_message = request.json.get("message")
-    intents_list = predict_class(user_message)
-    response = get_response(intents_list)
-    return jsonify({"response": response})
+# Streamlit UI
+st.title("🤖 CTF Chatbot Challenge")
+st.markdown("Try asking the bot something interesting. Can you find the hidden flag? 🕵️‍♀️")
 
-@app.route("/", methods=["GET"])
-def home():
-    return "CTF Chatbot is live!"
+user_input = st.text_input("You: ", "")
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if st.button("Send"):
+    if user_input:
+        ints = predict_class(user_input)
+        response = get_response(ints, intents)
+        st.text_area("Bot:", value=response, height=100)
+
+        if "flag{" in response:
+            st.success("🎉 Congratulations! You extracted the flag!")
