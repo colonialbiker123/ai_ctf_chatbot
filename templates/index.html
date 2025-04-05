@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CTF Chatbot</title>
+</head>
+<body>
+    <h1>Chat with the CTF Bot!</h1>
+    <input id="textInput" type="text" placeholder="Type something..." />
+    <button onclick="getBotResponse()">Send</button>
+    <p id="chatbox"></p>
+
+    <script>
+        function getBotResponse() {
+            var userText = document.getElementById("textInput").value;
+            fetch("/get?msg=" + userText)
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById("chatbox").innerHTML += "<br><b>You:</b> " + userText;
+                    document.getElementById("chatbox").innerHTML += "<br><b>Bot:</b> " + data;
+                });
+        }
+    </script>
+</body>
+</html>
